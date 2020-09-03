@@ -217,23 +217,6 @@ An object containing custom functions to use as additional [validation rules](ht
 <tr>
 <td>
 
-###### `engine`
-
-`EngineReportingOptions`
-</td>
-<td>
-
-An object containing configuration options for connecting Apollo Server to [Apollo Studio](https://www.apollographql.com/docs/studio/).
-
-Supported fields are described in [EngineReportingOptions](#enginereportingoptions).
-FIXME(no-engine) replace with a link to migration page
-</td>
-</tr>
-
-
-<tr>
-<td>
-
 ###### `cors`
 
 `Object` or `Boolean`
@@ -289,6 +272,21 @@ An object containing configuration options for connecting Apollo Server to [Apol
 
 </td>
 </tr>
+
+<tr>
+<td>
+
+###### `engine`
+
+`Object` or `Boolean`
+</td>
+<td>
+
+This deprecated option is how you configured connecting Apollo Server to [Apollo Studio](https://www.apollographql.com/docs/studio/) before Apollo Server FIXME(no-engine-version). New code should configure the Studio connection plugins directly instead. See [the migration docs](../migration-engine-plugins/) for details.
+
+</td>
+</tr>
+
 
 
 <tr>
@@ -669,62 +667,3 @@ addMockFunctionsToSchema({
   preserveResolvers: false,
 });
 ```
-
-## `EngineReportingOptions`
-
-These are the supported fields of the `engine` object you provide to the [`ApolloServer` constructor](#constructor) to configure communication with [Apollo Studio](https://www.apollographql.com/docs/studio/).
-
-| Name | Type | Description |
-|------|------|-------------|
-| **Base config** |
-| `apiKey` | `String` | <p>The [graph API key](https://www.apollographql.com/docs/studio/api-keys/#graph-api-keys) that Apollo Server should use to authenticate with Apollo Studio.</p><p>Instead of using this field, we recommend providing your API key by setting it as the value of the `APOLLO_KEY` environment variable in your server's environment.</p>  |
-| `graphVariant` | `String` | <p>The [variant](https://www.apollographql.com/docs/studio/schema/registry/#managing-environments-with-variants) of your graph to associate this server's schema and metrics with.</p><p>Instead of using this field, we recommend specifying a variant by setting its name as the value of the `APOLLO_GRAPH_VARIANT` environment variable in your server's environment.</p> |
-| `logger` | [`Logger`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-server-types/src/index.ts#L146-L152) | <p>If you provide this object, Apollo Server sends it all log messages related to Apollo Studio communication, instead of sending them to the default logger. The object must implement all methods of [the `Logger` interface](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-server-types/src/index.ts#L146-L152).</p> |
-| **Schema reporting** |
-| `reportSchema` | `Boolean` | <p>If `true`, Apollo Server begins periodically [reporting its schema](https://www.apollographql.com/docs/studio/schema/schema-reporting/) to Apollo Studio shortly after startup.</p><p>The default value is `false`.</p> |
-| `schemaReportingInitialDelayMaxMs` | `Number` | <p>On startup, Apollo Server waits a random amount of time between 0 milliseconds and this value before it begins reporting its schema. This randomness is useful for staggering schema reports when you deploy multiple server instances simultaneously.</p><p>The default value is 10 seconds (`10000`). You might want to reduce this value in constrained environments, such as AWS Lambda.</p> |
-| `overrideReportedSchema` | `String` | <p>By default, Apollo Server **normalizes** its schema before reporting it to Apollo Studio. Doing so helps make sure that no-op changes to a schema's whitespace or field order aren't incorrectly identified as an updated schema.</p><p>If normalization removes details that you want to preserve, you can provide an SDL string directly to this option. If you do, it is reported directly to Studio instead of the server's normalized schema.</p>   |
-| **Metrics reporting** |
-| `reportIntervalMs` | `Number` | <p>The interval at which Apollo Server should send batched trace reports to Studio, in milliseconds.</p><p>Regardless of this value, Apollo Server sends a trace report whenever the size of a pending batch exceeds the value of `maxUncompressedReportSize` (default 4MB).</p> |
-| `maxUncompressedReportSize` | `Number` | <p>Apollo Server sends a trace report whenever the size of a pending batched trace report exceeds this value (in bytes), regardless of its standard reporting interval.</p><p>The default value is 4MB (`4194304`).</p> |
-| `maxAttempts` | `Number` | <p>The maximum number of times Apollo Server should attempt to report each trace report, performing exponential backoff between attempts.</p><p>The default value is `5`.</p>  |
-| `minimumRetryDelayMs` | `Number` | <p>The minimum amount of backoff (in milliseconds) Apollo Server should perform before retrying a failed trace report.</p><p>The default value is `100`. |
-| `reportTiming` | `async Function` or `Boolean` | <p>Provide this async function to determine whether to report metrics to Apollo Studio on an operation-by-operation basis.</p><p>This function is called once per operation. It is passed either a `GraphQLRequestContextDidResolveOperation` object (on operation success) or a `GraphQLRequestContextDiDEncounterErrors` object (if errors occurred). It should return a Promise that resolves to a boolean (metrics are not reported if `false`).</p><p>By default, Apollo Server reports metrics for all operations if reporting is enabled.</p> |
-| `sendHeaders` | `Object` | <p>Provide this object to configure which request header names and values are included in trace data that's sent to Apollo Studio. Valid options are described in [Valid `sendHeaders` object signatures](#valid-sendheaders-object-signatures).</p><p>The default value is `{ none: true }`, which means **no** header names or values are sent to Studio. This is a security measure to prevent sensitive data from potentially reaching Apollo servers.</p>|
-| `sendVariableValues` | `Object` | <p>Provide this object to configure which GraphQL variable values are included in trace data that's sent to Apollo Studio. Valid options are described in [Valid `sendVariableValues` object signatures](#valid-sendvariablevalues-object-signatures).</p><p>The default value is `{ none: true }`, which means **no** variable values are sent to Studio. This is a security measure to prevent sensitive data from potentially reaching Apollo servers.</p>
-| `debugPrintReports` | `Boolean` | <p>If `true`, Apollo Server logs a message whenever a trace report is sent or a reporting error occurs.</p><p>The default value is `false`.</p>  |
-| `reportErrorFunction` | `Function` | <p>If you provide this function, Apollo Server calls it whenever it encounters an error while reporting metrics. The details of the error are passed to the function.</p><p>By default, Apollo Server logs these errors to stderr.</p> |
-| `rewriteError` | `Function` | <p>Specify this function to modify GraphQL operation errors before Apollo Server reports those errors to Apollo Studio. The function takes a [`GraphQLError`](https://github.com/graphql/graphql-js/blob/master/src/error/GraphQLError.js) object and must also return one (or `null` to prevent Apollo Server from reporting a particular error entirely).</p><p>The only properties of the reported error you can modify are its `message` and its `extensions`.</p> |
-| `requestAgent` | `http.Agent` or `https.Agent` or `false` | An HTTP(S) agent to use for metrics reporting. Can be either an [`http.Agent`](https://nodejs.org/docs/latest-v10.x/api/http.html#http_class_http_agent) or an [`https.Agent`](https://nodejs.org/docs/latest-v10.x/api/https.html#https_class_https_agent). It behaves the same as the `agent` parameter to [`http.request`](https://nodejs.org/docs/latest-v8.x/api/http.html#http_http_request_options_callback). |
-| `generateClientInfo` | `Function` | <p>Specify this function to provide Apollo Studio with client details for each processed operation. Apollo Studio uses this information to [segment metrics by client](https://www.apollographql.com/docs/studio/client-awareness/).</p><p>The function is passed a [`GraphQLRequestContext`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-server-types/src/index.ts#L95-L130) object containing all available information about the request. It should return a [`ClientInfo`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-engine-reporting/src/agent.ts#L35-L39) object describing the associated GraphQL client.</p><p>By default, Apollo Server attempts to obtain `ClientInfo` fields from the `clientInfo` field of the GraphQL operation's `extensions`.</p><p>For advanced use cases when you already use an opaque string to identify your client (such as an API key, x509 certificate, or team codename), use the `clientReferenceId` field to add a reference to that internal identity. The reference ID is not displayed in Studio, but it is available for cross-correspondence, so names and reference IDs should have a one-to-one relationship.</p><p>**Warning:** If you specify a `clientReferenceId`, Graph Manager will treat the `clientName` as a secondary lookup, so changing a `clientName` may result in an unwanted experience.</p>|
-| `calculateSignature` | `Function` | <p>A custom function to use to calculate the "signature" of the schema that operations are running against. This enables Apollo Studio to detect when two non-identical schema strings represent the exact same underlying model.</p><p>For an example, see the [default signature function](https://github.com/apollographql/apollo-tooling/blob/master/packages/apollo-graphql/src/operationId.ts), which sorts types and fields, removes extraneous whitespace, and removes unused definitions.</p>  |
-| `handleSignals` | `Boolean` | <p>For backwards compatibility only; specifying `new ApolloServer({engine: {handleSignals: false}})` is equivalent to specifying `new ApolloServer({stopOnTerminationSignals: false})`</p>|
-
-##### Valid `sendHeaders` object signatures
-
-You can provide an object with one of the following structures as the value of the `sendHeaders` option in [`EngineReportingOptions`](#enginereportingoptions).
-
-> Regardless of your configuration, Apollo Server **never** sends the values of the following headers to Apollo Studio:
->
-> * `authorization`
-> * `cookie`
-> * `set-cookie`
-
-| Object | Description |
-|--------|-------------|
-| `{ none: true }` | If you provide this object, no request header names or values are sent to Apollo Studio. This is the default behavior. |
-| `{ all: true }` |  If you provide this object, **all** GraphQL header names and values are sent to Apollo Studio, except for the protected headers listed above. |
-| `{ onlyNames: ["apple", "orange"]}`| If you provide an object with this structure, only names and values of the request headers with names that appear in the array are sent to Apollo Studio. Case-insensitive. |
-| `{ exceptNames: ["apple", "orange"]}`| If you provide an object with this structure, all GraphQL header values **except** values of headers with names that appear in the array are sent to Apollo Studio. Case-insensitive. |
-
-##### Valid `sendVariableValues` object signatures
-
-You can provide an object with one of the following structures as the value of the `sendVariableValues` option in [`EngineReportingOptions`](#enginereportingoptions).
-
-| Object | Description |
-|--------|-------------|
-| `{ none: true }` | If you provide this object, no GraphQL variable values are sent to Apollo Studio. This is the default behavior. |
-| `{ all: true }` |  If you provide this object, **all** GraphQL variable values are sent to Apollo Studio. |
-| `{ onlyNames: ["apple", "orange"]}`| If you provide an object with this structure, only values of the GraphQL variables with names that appear in the array are sent to Apollo Studio. Case-sensitive. |
-| `{ exceptNames: ["apple", "orange"]}`| If you provide an object with this structure, all GraphQL variable values **except** values of variables with names that appear in the array are sent to Apollo Studio. Case-sensitive. |
-| `{ transform: ({ variables, operationString)} => { ... } }` | <p>The value of `transform` is a function that takes the values of all GraphQL variables for an operation. The function should modify or delete necessary values in the `variables` map and return the result. You cannot _add_ variables to the map.</p><p>For security reasons, if an error occurs in the `transform` function, **all** variable values are replaced with `[PREDICATE_FUNCTION_ERROR]`. |
